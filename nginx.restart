@@ -1,5 +1,5 @@
 #!/bin/bash
 
-./nginx-stop
+./nginx.stop
 sleep 1
-./nginx-start
+./nginx.start
