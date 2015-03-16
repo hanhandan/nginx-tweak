@@ -1,0 +1,4 @@
+#!/bin/bash
+
+DATA_ROOT=${PWD}/data
+find $DATA_ROOT -regex '.*/[0-9]+' -type f -exec rm {} \;

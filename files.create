@@ -1,0 +1,22 @@
+#!/bin/bash
+
+DATA_ROOT=${PWD}/data
+DISKS=10
+#TOTAL_SIZE=$((4*1024*1024*1024*1024))
+TOTAL_SIZE=$((6000*1024*1024))
+SIZE_PER_FILE=$((60*1024*1024))
+FILES=$(($TOTAL_SIZE/$SIZE_PER_FILE))
+BLOCK_SIZE=1M
+BLOCK_COUNT=$((SIZE_PER_FILE/1024/1024))
+
+for ((i = 1; i <= $FILES; i++)); do
+    DISK=$(($i%$DISKS))
+    FILE_PATH=${DATA_ROOT}/$DISK/$i
+    FILE_SIZE=$(stat -c '%s' $FILE_PATH 2>/dev/null)
+    if [ -f "$FILE_PATH" ] && [ $FILE_SIZE -eq $SIZE_PER_FILE ]; then
+        echo "file exist: $FILE_PATH"
+    else
+        echo "file create: $FILE_PATH"
+        dd if=/dev/urandom of=$FILE_PATH bs=${BLOCK_SIZE} count=${BLOCK_COUNT}
+    fi
+done
