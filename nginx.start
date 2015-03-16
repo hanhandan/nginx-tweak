@@ -1,0 +1,4 @@
+#!/bin/bash
+
+nginx/sbin/nginx
+ps aux | grep "nginx: " | grep -v grep
