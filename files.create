@@ -11,6 +11,7 @@ BLOCK_COUNT=$((SIZE_PER_FILE/1024/1024))
 
 for ((i = 1; i <= $FILES; i++)); do
     DIRECTORY=${DATA_ROOT}/$(($i%$DIRECTORIES))
+    mkdir -p $DIRECTORY
     FILE_PATH=$DIRECTORY/$i
     FILE_SIZE=$(stat -c '%s' $FILE_PATH 2>/dev/null)
     if [ -f "$FILE_PATH" ] && [ $FILE_SIZE -eq $SIZE_PER_FILE ]; then
