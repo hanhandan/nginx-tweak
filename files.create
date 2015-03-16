@@ -18,6 +18,6 @@ for ((i = 1; i <= $FILES; i++)); do
         echo "file exist: $FILE_PATH"
     else
         echo "file create: $FILE_PATH"
-        echo dd if=/dev/urandom of=$FILE_PATH bs=${BLOCK_SIZE} count=${BLOCK_COUNT}
+        dd if=/dev/urandom of=$FILE_PATH bs=${BLOCK_SIZE} count=${BLOCK_COUNT}
     fi
 done
