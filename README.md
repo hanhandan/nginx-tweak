@@ -11,5 +11,14 @@ make -f nginx.Makefile
 
 # generate media files #
 
+./files.create
+
+## storage ##
+
+disks: 10
+total file size: 4TB
+size per file: 60MB
+total files: 70000
+files per disk: 7000
 
 # run tests #

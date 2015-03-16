@@ -10,7 +10,7 @@ build/nginx-1.6.2: build/nginx-1.6.2.tar.gz
 
 ${CURDIR}/sbin/nginx: build/nginx-1.6.2
 	cd build/nginx-1.6.2 && \
-	./configure --prefix=$(CURDIR)/nginx && \
+	./configure --without-pcre --prefix=$(CURDIR)/nginx && \
 	make && \
 	make install && \
 	ln -sf $(CURDIR)/nginx.conf $(CURDIR)/nginx/conf/
