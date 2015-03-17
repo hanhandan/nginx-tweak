@@ -21,4 +21,14 @@ total files: 70000
 directories: 100
 files per directory: 700
 
-# run tests #
+# test with loadtest #
+
+## install ##
+
+yum install nodejs npm
+make -f loadtest.Makefile
+
+## run test ##
+
+cd loadtest
+npm test
