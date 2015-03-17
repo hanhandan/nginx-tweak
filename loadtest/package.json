@@ -1,0 +1,14 @@
+{
+    "name": "nginx-tweak-loadtest",
+    "description": "nginx-tweak's load test project",
+    "version": "0.0.1",
+    "private": true,
+    "scripts": {
+        "test": "./node_modules/.bin/loadtest -n 1000000 -c 1000 -R ../../../src/requestGenerator.js http://nginx-tweak.example.com:8000/data"
+    },
+    "dependencies": {
+        "loadtest": "*"
+    },
+    "devDependencies": {
+    }
+}
