@@ -37,6 +37,10 @@ Tweak nginx for serve stream media files.
 
 # test with loadtest #
 
+## append to your /etc/hosts ##
+
+    127.0.0.1 nginx-tweak.example.com
+
 ## install ##
 
     yum install nodejs npm
