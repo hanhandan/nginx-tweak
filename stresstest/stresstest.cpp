@@ -32,6 +32,9 @@ int g_epoll_fd = -1;
 int g_current_connect = 0;
 int g_total_success = 0;
 int g_total_failed = 0;
+time_t g_start_time;
+uint64_t g_recv_bytes = 0;
+
 
 struct fd_data_t
 {
@@ -39,7 +42,6 @@ struct fd_data_t
     int request_pos;            /**< 请求缓冲区待发送数据位置. */
     char* response;             /**< 响应缓存区. */
     int response_pos;           /**< 响应缓冲区待接收数据位置. */
-    int body_size;              /**< 收到的响应体字节数. */
 };
 
 struct fd_data_t* g_fd_data[FD_MAX] = {NULL};
@@ -74,6 +76,7 @@ void free_fd_data(int fd)
             {
                 ++g_total_failed;
             }
+            g_recv_bytes += g_fd_data[fd]->response_pos;
         } else
         {
             ++g_total_failed;
@@ -206,6 +209,7 @@ int main(int argc, char *argv[])
         exit(EXIT_FAILURE);
     }
 
+    g_start_time = time(NULL);
     async_connect();
 
     int ready;
@@ -284,7 +288,8 @@ int main(int argc, char *argv[])
         }
         if(connected)
         {
-            printf("%d connect, %d success, %d failed\n", g_current_connect, g_total_success, g_total_failed);
+            time_t elapsed_time = time(NULL)  - g_start_time;
+            printf("%d connect, %d success(qps: %d), %d failed, %"PRIu64" received(speed: %"PRIu64")\n", g_current_connect, g_total_success, elapsed_time ? g_total_success/elapsed_time : 0, g_total_failed, g_recv_bytes, elapsed_time ? g_recv_bytes/elapsed_time : 0);
         }
     }
 
