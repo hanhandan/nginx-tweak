@@ -42,6 +42,8 @@ struct fd_data_t
     int request_pos;            /**< 请求缓冲区待发送数据位置. */
     char* response;             /**< 响应缓存区. */
     int response_pos;           /**< 响应缓冲区待接收数据位置. */
+    int header_length;          /**< 解析出的头部长度. */
+    int content_length;         /**< 解析出的响应体长度. */
 };
 
 struct fd_data_t* g_fd_data[FD_MAX] = {NULL};
@@ -50,10 +52,12 @@ void init_fd_data(int fd)
 {
     if(g_fd_data[fd] == NULL)
     {
-        static const char* request_format = "GET /data/%d/%d HTTP/1.1\r\nhost: %s\nRange: bytes=%d-%d\r\nConnection: close\r\n\r\n";
+        static const char* request_format = "GET /data/%d/%d HTTP/1.1\r\nhost: %s\nRange: bytes=%d-%d\r\n\r\n";
         static char request[1024];
         g_fd_data[fd] = (fd_data_t*)malloc(sizeof(struct fd_data_t));
         memset(g_fd_data[fd], 0, sizeof(struct fd_data_t));
+        g_fd_data[fd]->header_length = -1;
+        g_fd_data[fd]->content_length = -1;
         int file_id = rand()%(g_server_deploy_bytes/FILE_SIZE) + 1/*file id start by 1*/;
         int range_id = rand()%int(ceil(double(FILE_SIZE)/RANGE_SIZE));
         snprintf(request, sizeof(request), request_format, file_id%DIRECTORIES, file_id, g_server_domain, range_id*RANGE_SIZE, (range_id+1)*RANGE_SIZE-1);
@@ -93,6 +97,52 @@ void free_fd_data(int fd)
         g_fd_data[fd] = NULL;
         --g_current_connect;
         assert(g_current_connect >= 0);
+    }
+}
+
+void reuse_fd_data(int fd)
+{
+    if(g_fd_data[fd])
+    {
+        ++g_total_success;
+
+        struct epoll_event event;
+        event.data.fd = fd;
+        event.events = EPOLLOUT|EPOLLET;
+        if(epoll_ctl(g_epoll_fd, EPOLL_CTL_MOD, fd, &event) < 0)
+        {
+            perror("epoll_ctl error");
+            free_fd_data(fd);
+            return;
+        }
+
+        free(g_fd_data[fd]->response);
+        free(g_fd_data[fd]);
+        g_fd_data[fd] = NULL;
+    }
+}
+
+void parse_response(int fd)
+{
+    if (g_fd_data[fd] && g_fd_data[fd]->response)
+    {
+        char* header_end = strstr(g_fd_data[fd]->response, "\r\n\r\n");
+        if (header_end)
+        {
+            if (g_fd_data[fd]->header_length == -1)
+            {
+                g_fd_data[fd]->header_length = header_end - g_fd_data[fd]->response + 4;
+            }
+
+            if (g_fd_data[fd]->content_length == -1)
+            {
+                char* content_length = strcasestr(g_fd_data[fd]->response, "\r\nContent-Length:");
+                if (content_length && content_length < header_end)
+                {
+                    g_fd_data[fd]->content_length = atoi(content_length + 17);
+                }
+            }
+        }
     }
 }
 
@@ -253,15 +303,17 @@ int main(int argc, char *argv[])
 
             if(events[i].events & EPOLLIN)
             {
-                if(g_fd_data[events[i].data.fd]->response == NULL){
-                    g_fd_data[events[i].data.fd]->response = (char*)malloc(RESPONSE_BUFFER_SIZE);
-                    memset(g_fd_data[events[i].data.fd]->response, 0, RESPONSE_BUFFER_SIZE);
+                if(g_fd_data[events[i].data.fd]->response == NULL)
+                {
+                    g_fd_data[events[i].data.fd]->response = (char*)malloc(RESPONSE_BUFFER_SIZE + 1/*\0*/);
+                    memset(g_fd_data[events[i].data.fd]->response, 0, RESPONSE_BUFFER_SIZE + 1/*\0*/);
                 }
                 int n = 0;
                 while((n = recv(events[i].data.fd, g_fd_data[events[i].data.fd]->response + g_fd_data[events[i].data.fd]->response_pos, RESPONSE_BUFFER_SIZE - g_fd_data[events[i].data.fd]->response_pos, 0)) > 0)
                 {
                     g_fd_data[events[i].data.fd]->response_pos += n;
                 }
+                parse_response(events[i].data.fd);
                 if(n == 0 || errno != EAGAIN)
                 {
                     if(n != 0)
@@ -270,6 +322,10 @@ int main(int argc, char *argv[])
                     }
                     free_fd_data(events[i].data.fd);
                     continue;
+                }
+                else if (g_fd_data[events[i].data.fd]->header_length != -1 && g_fd_data[events[i].data.fd]->content_length != -1 && g_fd_data[events[i].data.fd]->header_length + g_fd_data[events[i].data.fd]->content_length == g_fd_data[events[i].data.fd]->response_pos)
+                {
+                    reuse_fd_data(events[i].data.fd);
                 }
             }
 
