@@ -9,6 +9,8 @@
 
    命令执行如下：
 
+       # echo 1 > /proc/sys/vm/drop_caches
+       # echo 0 > /proc/sys/vm/drop_caches
        # ./disktest/disktest -d 1099511627776 -t 40
        57 seconds elapsed, 3276800000 bytes readed, 57487719 bytes per second
 
