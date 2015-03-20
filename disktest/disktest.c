@@ -22,7 +22,51 @@ const char* g_data_path = "./data/";
 uint64_t g_read_bytes = 0;
 
 
-void* thread(void* arg)
+void* sequence_read_thread(void* arg)
+{
+    int id = (int)arg;
+    char filename[512];
+    char buffer[RANGE_SIZE];
+    int file_id;
+    int range_id = 0;
+    int range_num = (int)ceil((double)FILE_SIZE/RANGE_SIZE);
+    int directory_id;
+    int file_fd;
+    int read_bytes;
+
+    while (1) {
+        file_id = rand()%(g_deploy_bytes/FILE_SIZE) + 1/*file id start by 1*/;
+        directory_id = file_id%DIRECTORIES;
+        snprintf(filename, sizeof(filename), "%s/%d/%d", g_data_path, directory_id, file_id);
+        file_fd = open(filename, O_RDONLY);
+        if (file_fd == -1) {
+            fprintf(stderr, "Open file %s error: %d\n", filename, errno);
+            return (void*)errno;
+        }
+        for(range_id = 0; range_id < range_num; ++range_id) {
+            if (__sync_sub_and_fetch(&g_read_count, 1) >= 0) {
+                read_bytes = read(file_fd, buffer, sizeof(buffer));
+                if (-1 == read_bytes) {
+                    fprintf(stderr, "Read file %s range %d error: %d\n", filename, range_id, errno);
+                    return (void*)errno;
+                }
+                __sync_add_and_fetch(&g_read_bytes, read_bytes);
+                if (read_bytes < sizeof(buffer)) {
+                    // EOF
+                    break;
+                }
+            } else {
+                close(file_id);
+                return NULL;
+            }
+        }
+        close(file_fd);
+    }
+
+    return NULL;
+}
+
+void* random_read_thread(void* arg)
 {
     int id = (int)arg;
     char filename[512];
@@ -65,8 +109,9 @@ int main(int argc, char *argv[])
 {
     int optopt = 0;
     uint32_t thread_num = 8;
+    uint32_t sequence_read = 0;
 
-    while ((optopt = getopt(argc, argv, "d:p:t:c:h")) != -1) {
+    while ((optopt = getopt(argc, argv, "d:p:t:c:s:h")) != -1) {
         switch (optopt) {
         case 'd':
             g_deploy_bytes = strtoull(optarg, NULL, 0);
@@ -88,8 +133,12 @@ int main(int argc, char *argv[])
             g_read_count = strtol(optarg, NULL, 0);
             break;
 
+        case 's':
+            sequence_read = atoi(optarg);
+            break;
+
         case 'h':
-            fprintf(stderr, "usage: %s [OPTION]...\n\t-d deploy bytes, default is %"PRIu64"\n\t-p data path, default is %s\n\t-t thread numbers, default is %"PRIu32"\n\t-c read count, default is %"PRIu32"\n\t-h display this help and exit\n", argv[0], g_deploy_bytes, g_data_path, thread_num, g_read_count);
+            fprintf(stderr, "usage: %s [OPTION]...\n\t-d deploy bytes, default is %"PRIu64"\n\t-p data path, default is %s\n\t-t thread numbers, default is %"PRIu32"\n\t-c read count, default is %"PRIu32"\n\t-s sequence read, default is %"PRIu32"\n\t-h display this help and exit\n", argv[0], g_deploy_bytes, g_data_path, thread_num, g_read_count, sequence_read);
             exit(EXIT_FAILURE);
 
         case '?':
@@ -111,7 +160,7 @@ int main(int argc, char *argv[])
     int err;
 
     for (i = 0; i < thread_num; ++i) {
-        err = pthread_create(&threads[i], NULL, thread, (void*)i);
+        err = pthread_create(&threads[i], NULL, sequence_read ? sequence_read_thread : random_read_thread, (void*)i);
         if (err != 0) {
             fprintf(stderr, "Create thread #%d error: %d\n", i, err);
             exit(EXIT_FAILURE);
