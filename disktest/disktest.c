@@ -43,6 +43,12 @@ void* thread(void* arg)
             fprintf(stderr, "Open file %s error: %d\n", filename, errno);
             return (void*)errno;
         }
+        if (range_id) {
+            if (-1 == lseek(file_fd, range_id*RANGE_SIZE, SEEK_SET)) {
+                fprintf(stderr, "Seek file %s error: %d\n", filename, errno);
+                return (void*)errno;
+            }
+        }
         read_bytes = read(file_fd, buffer, sizeof(buffer));
         if (-1 == read_bytes) {
             fprintf(stderr, "Read file %s range %d error: %d\n", filename, range_id, errno);
