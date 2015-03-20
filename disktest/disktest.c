@@ -16,7 +16,7 @@ enum {
     RANGE_SIZE = 32*1024,
 };
 
-int g_read_count = 1000;
+int g_read_count = 100000;
 uint64_t g_deploy_bytes = 4L*1024*1024*1024*1024;
 const char* g_data_path = "./data/";
 uint64_t g_read_bytes = 0;
@@ -60,7 +60,7 @@ int main(int argc, char *argv[])
     int optopt = 0;
     uint32_t thread_num = 8;
 
-    while ((optopt = getopt(argc, argv, "d:p:t:h")) != -1) {
+    while ((optopt = getopt(argc, argv, "d:p:t:c:h")) != -1) {
         switch (optopt) {
         case 'd':
             g_deploy_bytes = strtoull(optarg, NULL, 0);
@@ -76,11 +76,14 @@ int main(int argc, char *argv[])
                 fprintf(stderr, "Thread numbers must greater than 0\n");
                 exit(EXIT_FAILURE);
             }
+            break;
 
+        case 'c':
+            g_read_count = strtol(optarg, NULL, 0);
             break;
 
         case 'h':
-            fprintf(stderr, "usage: %s [OPTION]...\n\t-d deploy bytes, default is %"PRIu64"\n\t-p data path, default is %s\n\t\n\t-t thread numbers, default is %"PRIu32"\n\t-h display this help and exit\n", argv[0], g_deploy_bytes, g_data_path, thread_num);
+            fprintf(stderr, "usage: %s [OPTION]...\n\t-d deploy bytes, default is %"PRIu64"\n\t-p data path, default is %s\n\t-t thread numbers, default is %"PRIu32"\n\t-c read count, default is %"PRIu32"\n\t-h display this help and exit\n", argv[0], g_deploy_bytes, g_data_path, thread_num, g_read_count);
             exit(EXIT_FAILURE);
 
         case '?':
