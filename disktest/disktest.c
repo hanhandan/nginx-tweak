@@ -123,7 +123,7 @@ int main(int argc, char *argv[])
     }
 
     time_t elapsed_time = time(NULL)  - start_time;
-    printf("%"PRIu64" bytes readed, %"PRIu64" bytes per second\n", g_read_bytes, elapsed_time ? g_read_bytes/elapsed_time : 0);
+    printf("%d seconds elapsed, %"PRIu64" bytes readed, %"PRIu64" bytes per second\n", elapsed_time, g_read_bytes, elapsed_time ? g_read_bytes/elapsed_time : 0);
 
     return 0;
 }
