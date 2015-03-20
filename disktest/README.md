@@ -12,4 +12,4 @@
        # ./disktest/disktest -d 1099511627776 -t 40
        57 seconds elapsed, 3276800000 bytes readed, 57487719 bytes per second
 
-   开40个线程进行测试，100000次读写耗时57秒，54.82MB每秒。
+   开40个线程进行测试，100000次读取耗时57秒，54.82MB每秒。
